@@ -101,6 +101,22 @@ public static class DomainConstants
         public const string Error = "ERROR";
     }
 
+    public static class WorkoutSessionStatus
+    {
+        public const string InProgress = "IN_PROGRESS";
+        public const string Finished = "FINISHED";
+        public const string Skipped = "SKIPPED";
+        public const string Done = "DONE";
+    }
+
+    public static class ConnectionStatus
+    {
+        public const string Pending = "PENDING";
+        public const string Accepted = "ACCEPTED";
+        public const string Rejected = "REJECTED";
+        public const string Cancelled = "CANCELLED";
+    }
+
     /// <summary>Role Admin - toàn quyền hệ thống.</summary>
     public const string AdminRole = "Admin";
 

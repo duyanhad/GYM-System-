@@ -86,6 +86,11 @@ public static class PermissionConstants
     public const string SYSTEM_NOTIFICATION_VIEW = "SYSTEM_NOTIFICATION_VIEW";
     public const string SYSTEM_NOTIFICATION_CREATE = "SYSTEM_NOTIFICATION_CREATE";
 
+    // === TẬP LUYỆN (bài tập, giáo án, lịch tuần, buổi tập) ===
+    public const string WORKOUT_VIEW = "WORKOUT_VIEW";
+    public const string WORKOUT_MANAGE = "WORKOUT_MANAGE";
+    public const string WORKOUT_SHARE = "WORKOUT_SHARE";
+
     /// <summary>Loại claim dùng để lưu PermissionCode trong JWT.</summary>
     public const string PERMISSION_CLAIM_TYPE = "permission";
 }

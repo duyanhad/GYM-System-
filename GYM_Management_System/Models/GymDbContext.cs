@@ -51,6 +51,18 @@ public partial class GymDbContext : DbContext
     public virtual DbSet<SystemLog> SystemLogs { get; set; }
     public virtual DbSet<SystemNotification> SystemNotifications { get; set; }
 
+    // ===== Tập luyện: bài tập, giáo án, lịch tuần, buổi tập =====
+    public virtual DbSet<Exercise> Exercises { get; set; }
+    public virtual DbSet<WorkoutPlan> WorkoutPlans { get; set; }
+    public virtual DbSet<WorkoutPlanItem> WorkoutPlanItems { get; set; }
+    public virtual DbSet<WeeklyScheduleEntry> WeeklyScheduleEntries { get; set; }
+    public virtual DbSet<WorkoutSession> WorkoutSessions { get; set; }
+    public virtual DbSet<WorkoutSessionExercise> WorkoutSessionExercises { get; set; }
+    public virtual DbSet<WorkoutSetLog> WorkoutSetLogs { get; set; }
+    public virtual DbSet<WorkoutPlanShare> WorkoutPlanShares { get; set; }
+    public virtual DbSet<UserConnection> UserConnections { get; set; }
+    public virtual DbSet<UserNotification> UserNotifications { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -453,6 +465,129 @@ public partial class GymDbContext : DbContext
             entity.Property(e => e.Message).HasMaxLength(1000).IsRequired();
             entity.Property(e => e.Type).HasMaxLength(30);
             entity.Property(e => e.ReferenceType).HasMaxLength(50);
+        });
+
+        // =====================================================================
+        // TẬP LUYỆN: BÀI TẬP / GIÁO ÁN / LỊCH TUẦN / BUỔI TẬP
+        // =====================================================================
+        modelBuilder.Entity<Exercise>(entity =>
+        {
+            entity.ToTable("Exercises");
+            entity.HasKey(e => e.ExerciseId);
+            entity.HasIndex(e => new { e.UserId, e.Name });
+            entity.Property(e => e.Name).HasMaxLength(200).IsRequired();
+            entity.Property(e => e.MuscleGroup).HasMaxLength(50).IsRequired();
+            entity.Property(e => e.Note).HasMaxLength(500);
+        });
+
+        modelBuilder.Entity<WorkoutPlan>(entity =>
+        {
+            entity.ToTable("WorkoutPlans");
+            entity.HasKey(e => e.WorkoutPlanId);
+            entity.HasIndex(e => e.UserId);
+            entity.Property(e => e.Name).HasMaxLength(200).IsRequired();
+            entity.Property(e => e.Focus).HasMaxLength(200);
+            entity.Property(e => e.Note).HasMaxLength(1000);
+        });
+
+        modelBuilder.Entity<WorkoutPlanItem>(entity =>
+        {
+            entity.ToTable("WorkoutPlanItems");
+            entity.HasKey(e => e.WorkoutPlanItemId);
+            entity.HasIndex(e => new { e.WorkoutPlanId, e.OrderIndex });
+            entity.Property(e => e.ExerciseName).HasMaxLength(200).IsRequired();
+            entity.Property(e => e.Note).HasMaxLength(500);
+
+            entity.HasOne(e => e.WorkoutPlan)
+                .WithMany(p => p.Items)
+                .HasForeignKey(e => e.WorkoutPlanId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<WeeklyScheduleEntry>(entity =>
+        {
+            entity.ToTable("WeeklyScheduleEntries");
+            entity.HasKey(e => e.WeeklyScheduleEntryId);
+            entity.HasIndex(e => new { e.UserId, e.DayOfWeek }).IsUnique();
+
+            entity.HasOne<WorkoutPlan>()
+                .WithMany()
+                .HasForeignKey(e => e.WorkoutPlanId)
+                .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        modelBuilder.Entity<WorkoutSession>(entity =>
+        {
+            entity.ToTable("WorkoutSessions");
+            entity.HasKey(e => e.WorkoutSessionId);
+            entity.HasIndex(e => new { e.UserId, e.SessionDate });
+            entity.Property(e => e.PlanName).HasMaxLength(200);
+            entity.Property(e => e.Status).HasMaxLength(30).IsRequired();
+            entity.Property(e => e.Note).HasMaxLength(1000);
+
+            entity.HasOne<WorkoutPlan>()
+                .WithMany()
+                .HasForeignKey(e => e.WorkoutPlanId)
+                .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        modelBuilder.Entity<WorkoutSessionExercise>(entity =>
+        {
+            entity.ToTable("WorkoutSessionExercises");
+            entity.HasKey(e => e.WorkoutSessionExerciseId);
+            entity.HasIndex(e => new { e.WorkoutSessionId, e.OrderIndex });
+            entity.Property(e => e.ExerciseName).HasMaxLength(200).IsRequired();
+            entity.Property(e => e.MuscleGroup).HasMaxLength(50);
+            entity.Property(e => e.Note).HasMaxLength(500);
+
+            entity.HasOne(e => e.WorkoutSession)
+                .WithMany(s => s.Exercises)
+                .HasForeignKey(e => e.WorkoutSessionId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<WorkoutSetLog>(entity =>
+        {
+            entity.ToTable("WorkoutSetLogs");
+            entity.HasKey(e => e.WorkoutSetLogId);
+            entity.HasIndex(e => new { e.WorkoutSessionExerciseId, e.SetNumber });
+            entity.Property(e => e.Status).HasMaxLength(30).IsRequired();
+
+            entity.HasOne(e => e.SessionExercise)
+                .WithMany(x => x.Sets)
+                .HasForeignKey(e => e.WorkoutSessionExerciseId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<WorkoutPlanShare>(entity =>
+        {
+            entity.ToTable("WorkoutPlanShares");
+            entity.HasKey(e => e.WorkoutPlanShareId);
+            entity.HasIndex(e => new { e.ToUserId, e.WorkoutPlanId });
+            entity.Property(e => e.Message).HasMaxLength(500);
+
+            entity.HasOne<WorkoutPlan>()
+                .WithMany()
+                .HasForeignKey(e => e.WorkoutPlanId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<UserConnection>(entity =>
+        {
+            entity.ToTable("UserConnections");
+            entity.HasKey(e => e.UserConnectionId);
+            entity.HasIndex(e => new { e.RequesterUserId, e.AddresseeUserId }).IsUnique();
+            entity.Property(e => e.Status).HasMaxLength(30).IsRequired();
+        });
+
+        modelBuilder.Entity<UserNotification>(entity =>
+        {
+            entity.ToTable("UserNotifications");
+            entity.HasKey(e => e.UserNotificationId);
+            entity.HasIndex(e => new { e.UserId, e.IsRead });
+            entity.Property(e => e.Title).HasMaxLength(200).IsRequired();
+            entity.Property(e => e.Message).HasMaxLength(1000);
+            entity.Property(e => e.Type).HasMaxLength(50);
         });
 
         // =====================================================================

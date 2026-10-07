@@ -27,6 +27,7 @@ public static class DatabaseSeeder
         await SeedTrainersAsync(context);
         await SeedTrainingClassesAsync(context);
         await SeedMembersAsync(context);
+        await SeedWorkoutLibraryAsync(context);
     }
 
     // =====================================================================
@@ -157,7 +158,8 @@ public static class DatabaseSeeder
                 PermissionConstants.INVOICE_VIEW, PermissionConstants.INVOICE_CREATE,
                 PermissionConstants.PAYMENT_VIEW, PermissionConstants.PAYMENT_CREATE,
                 PermissionConstants.CLASS_VIEW, PermissionConstants.TRAINER_VIEW, PermissionConstants.BRANCH_VIEW,
-                PermissionConstants.DASHBOARD_VIEW
+                PermissionConstants.DASHBOARD_VIEW,
+                PermissionConstants.WORKOUT_VIEW, PermissionConstants.WORKOUT_MANAGE, PermissionConstants.WORKOUT_SHARE
             }, permissions);
 
         await EnsureRoleAsync(context, DomainConstants.TrainerRole, "Huấn luyện viên: xem lớp, lịch dạy và học viên.", false,
@@ -168,7 +170,8 @@ public static class DatabaseSeeder
                 PermissionConstants.BOOKING_VIEW, PermissionConstants.BOOKING_UPDATE,
                 PermissionConstants.MEMBER_VIEW,
                 PermissionConstants.CHECKIN_VIEW,
-                PermissionConstants.DASHBOARD_VIEW
+                PermissionConstants.DASHBOARD_VIEW,
+                PermissionConstants.WORKOUT_VIEW, PermissionConstants.WORKOUT_MANAGE, PermissionConstants.WORKOUT_SHARE
             }, permissions);
     }
 
@@ -679,4 +682,103 @@ public static class DatabaseSeeder
         context.ClassBookings.AddRange(bookings);
         await context.SaveChangesAsync();
     }
+
+    // =====================================================================
+    // THƯ VIỆN TẬP LUYỆN: BÀI TẬP MẪU + GIÁO ÁN MẪU
+    // =====================================================================
+    private static async Task SeedWorkoutLibraryAsync(GymDbContext context)
+    {
+        if (!await context.Exercises.AnyAsync(e => e.UserId == null))
+        {
+            var now = DateTime.UtcNow;
+
+            var exercises = new List<Exercise>
+            {
+                NewExercise("Bench Press", "Ngực", 4, 10, 90, "Giữ vai cố định, hạ tạ chậm 2 giây.", now),
+                NewExercise("Squat", "Chân", 4, 12, 120, "Lưng thẳng, xuống tới đùi song song sàn.", now),
+                NewExercise("Deadlift", "Lưng", 3, 8, 150, "Siết core, không gù lưng.", now),
+                NewExercise("Kéo xà", "Lưng", 3, 8, 90, "Kéo bằng lưng, không đung đưa.", now),
+                NewExercise("Đẩy vai tạ đôi", "Vai", 3, 12, 75, null, now),
+                NewExercise("Curl tạ tay", "Tay", 3, 15, 60, "Không dùng đà.", now),
+                NewExercise("Plank", "Bụng", 3, 1, 45, "Giữ 45 giây mỗi hiệp.", now),
+                NewExercise("Chạy bộ 3km", "Cardio", 1, 1, 0, "Pace 6:00/km.", now)
+            };
+
+            context.Exercises.AddRange(exercises);
+            await context.SaveChangesAsync();
+        }
+
+        if (await context.WorkoutPlans.AnyAsync(p => p.UserId == null)) return;
+
+        var templates = new (string Name, string Focus, string? Note, (string Exercise, int Sets, int Reps, int RestSeconds)[] Items)[]
+        {
+            ("Buổi Push (Ngực - Vai - Tay sau)", "Ngực · Vai · Tay", "Khởi động 5 phút, nghỉ 90 giây giữa các hiệp nặng.",
+                new[] { ("Bench Press", 4, 10, 90), ("Đẩy vai tạ đôi", 4, 12, 75), ("Curl tạ tay", 3, 15, 60) }),
+            ("Buổi Pull (Lưng - Tay trước)", "Lưng · Tay", "Tập trung cảm nhận cơ lưng, không dùng đà.",
+                new[] { ("Deadlift", 4, 8, 150), ("Kéo xà", 4, 8, 90), ("Curl tạ tay", 3, 12, 60) }),
+            ("Buổi Legs (Chân - Mông)", "Chân · Bụng", "Khởi động khớp gối kỹ trước khi vào hiệp nặng.",
+                new[] { ("Squat", 5, 10, 120), ("Plank", 3, 1, 45) }),
+            ("Buổi Cardio + Core", "Cardio · Bụng", "Buổi nhẹ, phù hợp ngày giữa tuần.",
+                new[] { ("Chạy bộ 3km", 1, 1, 0), ("Plank", 4, 1, 45) })
+        };
+
+        var exerciseLookup = await context.Exercises
+            .Where(e => e.UserId == null)
+            .ToDictionaryAsync(e => e.Name, e => e.ExerciseId);
+
+        var now2 = DateTime.UtcNow;
+        var plans = new List<WorkoutPlan>();
+
+        foreach (var template in templates)
+        {
+            var plan = new WorkoutPlan
+            {
+                WorkoutPlanId = Guid.NewGuid(),
+                UserId = null,
+                Name = template.Name,
+                Focus = template.Focus,
+                Note = template.Note,
+                IsActive = true,
+                CreatedAt = now2,
+                UpdatedAt = now2
+            };
+
+            var order = 1;
+
+            foreach (var item in template.Items)
+            {
+                plan.Items.Add(new WorkoutPlanItem
+                {
+                    WorkoutPlanItemId = Guid.NewGuid(),
+                    WorkoutPlanId = plan.WorkoutPlanId,
+                    OrderIndex = order++,
+                    ExerciseId = exerciseLookup.GetValueOrDefault(item.Exercise),
+                    ExerciseName = item.Exercise,
+                    TargetSets = item.Sets,
+                    TargetReps = item.Reps,
+                    RestSeconds = item.RestSeconds
+                });
+            }
+
+            plans.Add(plan);
+        }
+
+        context.WorkoutPlans.AddRange(plans);
+        await context.SaveChangesAsync();
+    }
+
+    private static Exercise NewExercise(string name, string group, int sets, int reps, int rest, string? note, DateTime now) => new()
+    {
+        ExerciseId = Guid.NewGuid(),
+        UserId = null,
+        Name = name,
+        MuscleGroup = group,
+        DefaultSets = sets,
+        DefaultReps = reps,
+        DefaultRestSeconds = rest,
+        Note = note,
+        IsActive = true,
+        CreatedAt = now,
+        UpdatedAt = now
+    };
 }

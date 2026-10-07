@@ -21,6 +21,7 @@ using GYM_Management_System.Services.MemberServices;
 using GYM_Management_System.Services.MembershipServices;
 using GYM_Management_System.Services.SystemServices;
 using GYM_Management_System.Services.TrainerServices;
+using GYM_Management_System.Services.WorkoutServices;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -87,6 +88,12 @@ builder.Services.AddScoped<IBranchService, BranchService>();
 builder.Services.AddScoped<IDashboardService, DashboardService>();
 builder.Services.AddScoped<ISystemLogService, SystemLogService>();
 builder.Services.AddScoped<ISystemNotificationService, SystemNotificationService>();
+
+// Tập luyện: bài tập, giáo án, lịch tuần, buổi tập, chia sẻ
+builder.Services.AddScoped<IWorkoutExerciseService, WorkoutExerciseService>();
+builder.Services.AddScoped<IWorkoutPlanService, WorkoutPlanService>();
+builder.Services.AddScoped<IWorkoutSessionService, WorkoutSessionService>();
+builder.Services.AddScoped<IWorkoutShareService, WorkoutShareService>();
 
 // =========================================================================
 // CONTROLLERS
