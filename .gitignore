@@ -1,0 +1,27 @@
+# .NET Core / ASP.NET
+bin/
+obj/
+*.dll
+*.pdb
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+.vs/
+*.log
+
+# Local database (SQLite dev)
+*.db
+*.db-shm
+*.db-wal
+
+# Local / per-developer config
+appsettings.local.json
+publish/
+
+# IDE
+.vscode/
+.idea/
+.agents/
+.codegraph/
+skills-lock.json
