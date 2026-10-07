@@ -25,3 +25,6 @@ publish/
 .agents/
 .codegraph/
 skills-lock.json
+
+# Không dùng README (chặn không cho đưa vào repo)
+README.md
